@@ -120,9 +120,9 @@ T Stack<T>::Pop() {
 }
 </code></pre>
 
-<p>*Guidelines:* <em>If the initial copy from v_[vused_-1] fails, the exception is propagated and the state of the Stack is unchanged.</em></p>
+<p>If the initial copy from v_[vused_-1] fails, the exception is propagated and the state of the Stack is unchanged.</p>
 
-<p>*Common Mistakes:* <em>Pop() has a flaw. Consider the client code,</em></p>
+<p>Pop() has a flaw. Consider the client code,</p>
 
 <blockquote>
 <p>std::string s1(s.Pop()); <br>
@@ -130,7 +130,7 @@ std::string s2; <br>
 s2 = s.Pop();</p>
 </blockquote>
 
-<p>*Common Mistakes:* <em>The flaw arises from the fact that the Pop function returns a value by value. If an exception occurs during the construction of the returned copy (e.g., during the copy constructor or copy assignment operator), the state of the stack might be modified, but the popped value is lost.</em></p>
+<p>The flaw arises from the fact that the Pop function returns a value by value. If an exception occurs during the construction of the returned copy (e.g., during the copy constructor or copy assignment operator), the state of the stack might be modified, but the popped value is lost.</p>
 
 <h3>Implementing Pop() - 2nd Try</h3>
 
@@ -145,9 +145,13 @@ template &lt;class T&gt; T Stack&lt;T&gt;::Pop(T &result) {
 }
 </code></pre>
 
-<p>*Guidelines:* <em>In the revised implementation, the Pop function doesn't return a value anymore. Instead, it takes an additional parameter result by reference. The popped element is directly assigned to this result parameter. The Stack's state is not changed until the popped element safely arrives in the caller's hand.</em></p>
+<p>In the revised implementation, the Pop function doesn't return a value anymore. Instead, it takes an additional parameter result by reference. The popped element is directly assigned to this result parameter. The Stack's state is not changed until the popped element safely arrives in the caller's hand.</p>
 
-<p>*Common Mistakes:* <em>But Pop() now has two responsibilities, to pop the top-most element and to return the just-popped value. The breaks cohesion principle.</em></p>
+<p>But Pop() now has two responsibilities, to pop the top-most element and to return the just-popped value. The breaks cohesion principle.</p>
+
+<p><em>Guideline: Prefer cohesion. Always endeavor to give each piece of code—each module, each class, each function—a single, well-defined responsibility.</em></p>
+    
+<p>So other preferable option is to separate the functions of "querying the top-most value" and "popping the top-most value off the stack." We do this by having one function for eac</p>
 
 <h3>Implementing Pop() - 3rd Try</h3>
 
@@ -169,9 +173,9 @@ template &lt;class T&gt; void Stack&lt;T&gt;::Pop() {
 }
 </code></pre>
 
-<p>*Guidelines:* <em>The above separated Top() and Pop() now match the signatures of the top and pop members of the standard library's stack&lt;&gt; adapter. That's no coincidence. The reason why standard library containers' pop functions (for example, list::pop_back, stack::pop, etc.) don't return the popped value is to avoid weakening exception safety.</em></p>
+<p>The above separated Top() and Pop() now match the signatures of the top and pop members of the standard library's stack&lt;&gt; adapter. That's no coincidence. The reason why standard library containers' pop functions (for example, list::pop_back, stack::pop, etc.) don't return the popped value is to avoid weakening exception safety.</p>
 
-<p>*Common Mistakes:* <em>"Exception-unsafe" and "poor design" go hand in hand. If a piece of code isn't exception-safe, that's generally okay and can simply be fixed. But if a piece of code cannot be made exception-safe because of its underlying design, that almost always is a signal of its poor design.</em></p>
+<p><em>Common Mistakes: "Exception-unsafe" and "poor design" go hand in hand. If a piece of code isn't exception-safe, that's generally okay and can simply be fixed. But if a piece of code cannot be made exception-safe because of its underlying design, that almost always is a signal of its poor design.</em></p>
 
 </div>
 
