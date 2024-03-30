@@ -124,11 +124,12 @@ T Stack<T>::Pop() {
 
 <p>Pop() has a flaw. Consider the client code,</p>
 
-<blockquote>
+<pre><code>
 <p>std::string s1(s.Pop()); <br>
 std::string s2; <br>
 s2 = s.Pop();</p>
-</blockquote>
+</code></pre>
+
 
 <p>The flaw arises from the fact that the Pop function returns a value by value. If an exception occurs during the construction of the returned copy (e.g., during the copy constructor or copy assignment operator), the state of the stack might be modified, but the popped value is lost.</p>
 
