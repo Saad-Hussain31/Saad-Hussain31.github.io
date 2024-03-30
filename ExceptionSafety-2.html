@@ -69,7 +69,7 @@ T Pop(); // if empty, throws exception
 
 <h2>Count()</h2>
 
-<p>*Guidelines:* <em>Count() is easiest to implement and also exception safe because builtins never throw.</em></p>
+<p>Count() is easiest to implement and also exception safe because builtins never throw.</p>
 
 <pre><code>
 template<class T> 
@@ -80,7 +80,7 @@ std::size_t Stack<T>::Count() const {
 
 <h2>Push()</h2>
 
-<p>*Guidelines:* <em>For Push(), if NewCopy() throws then state is unchanged, and exception is propagated back to the client cleanly.</em></p>
+<p>For Push(), if NewCopy() throws then state is unchanged, and exception is propagated back to the client cleanly.</p>
 
 <pre><code>
 template<class T> 
@@ -97,11 +97,13 @@ void Stack<T>::Push( const T& t ) {
 }
 </code></pre>
 
-<p>*Guidelines:* <em>After any required grow operation, we attempt to copy the new value before incrementing our vused_ count. This way, if the assignment throws, the increment is not performed and our Stack's state is unchanged. If the assignment succeeds, the Stack's state is changed to recognize the presence of the new value.</em></p>
+<p>After any required grow operation, we attempt to copy the new value before incrementing our vused_ count. This way, if the assignment throws, the increment is not performed and our Stack's state is unchanged. If the assignment succeeds, the Stack's state is changed to recognize the presence of the new value.</p>
+
+<p><em>Guidelines: Observe the canonical exception-safety rules: In each function, take all the code that might emit an exception and do all that work safely off to the side; only then, when you know that the real work has succeeded, should you modify the program state (and clean up) using only nonthrowing operations.</em></p>
 
 <h2>Pop()</h2>
 
-<p>*Guidelines:* <em>Now comes the challenging part of writing Pop() correctly.</em></p>
+<p>Now comes the challenging part of writing Pop() correctly.</p>
 
 <h3>Implementing Pop() - 1st Try</h3>
 
