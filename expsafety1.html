@@ -1,1 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exception Safety and Exception Neutrality in C++ Constructors and Destructors</title>
+</head>
+<body>
 
+<h1>Exception Safety and Exception Neutrality in C++ Constructors and Destructors</h1>
+
+<p>Are the following constructor and destructor exceptions safe and exception neutral?</p>
+
+<pre><code>
+template &lt;class T&gt; 
+class Stack {
+public:
+  Stack();
+  ~Stack();
+
+private:
+  T *v_;         // ptr to a memory area big
+  size_t vsize_; // enough for 'vsize_' T's
+  size_t vused_; // # of T's actually in use
+};
+
+template&lt;class T&gt; 
+Stack&lt;T&gt;::Stack()
+ : v_(new T[10]), // default allocation
+   vsize_(10),
+   vused_(0) // nothing used yet
+{}
+
+template &lt;class T&gt; 
+Stack&lt;T&gt;::~Stack() {
+  delete[] v_; // this can't throw
+}
+</code></pre>
+
+<p>Let's define exception safety and exception neutrality.</p>
+
+<h2>Exception Safety</h2>
+
+<p>Stack objects should always be in a correct and consistent state, regardless of any exceptions that might be thrown in the course of executing Stack's member functions.</p>
+
+<h2>Exception Neutrality</h2>
+
+<p>If any exceptions are thrown, they should be propagated seamlessly through to the caller, who can deal with them as he pleases, because he knows the context of <code>T</code> and we don't.</p>
+
+<p>The standard requires that when an exception occurs and does not get handled, it gets propagated up to the call stack until it reaches a point that can handle it or until the program terminates.</p>
+
+<h2>Why can’t <code>new</code> call throw?</h2>
+
+<p>With the <code>new</code> keyword, if an exception occurs in the constructor, C++ automatically deallocates the memory allocated with the <code>new</code> and releases it back to the system. Even if the object is partially constructed. So whether the <code>new</code> operator succeeds or fails, the <code>Stack</code> object will be in a consistent state.</p>
+
+<p>But what about the <code>vsize_</code> which is set to 10? It is also consistent because even if <code>vsize_</code> is set, no memory was allocated, so the value of <code>vsize_</code> does not matter.</p>
+
+<p>Basically, if an object’s constructor exits due to an exception, the object is considered to have never existed (its lifetime never started) and any memory that was briefly or partially allocated is automatically destroyed by C++.</p>
+
+<h2>Why can’t <code>delete[]</code> call throw?</h2>
+
+<p>The standard also requires the <code>delete[]</code> operator to have a specific signature that does not allow it to throw exceptions.</p>
+
+<pre><code>
+void operator delete[]( void* ) throw();
+void operator delete[]( void*, size_t ) throw();
+</code></pre>
+
+<p>These signatures indicate that the <code>delete[]</code> operator must not throw exceptions during memory deallocation.</p>
+
+<p>A safer and modern C++ way of preventing a function from throwing is the use of <code>noexcept</code> keyword.</p>
+
+</body>
+</html>
