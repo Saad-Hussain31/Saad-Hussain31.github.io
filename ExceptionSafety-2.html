@@ -83,7 +83,7 @@ std::size_t Stack<T>::Count() const {
 <p>For Push(), if NewCopy() throws then state is unchanged, and exception is propagated back to the client cleanly.</p>
 
 <pre><code>
-template<class T> 
+template &lt;class T&gt;
 void Stack<T>::Push( const T& t ) {
  if( vused_ == vsize_ ) { // grow if necessary by some grow factor
      std::size_t vsize_new = vsize_*2+1;
@@ -108,7 +108,7 @@ void Stack<T>::Push( const T& t ) {
 <h3>Implementing Pop() - 1st Try</h3>
 
 <pre><code>
-template<class T>
+template &lt;class T&gt;
 T Stack<T>::Pop() {
     if( vused_ == 0) {
         throw "pop from empty stack";
