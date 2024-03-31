@@ -72,7 +72,7 @@ T Pop(); // if empty, throws exception
 <p>Count() is easiest to implement and also exception safe because builtins never throw.</p>
 
 <pre><code>
-template<class T> 
+template &lt;class T&gt;
 std::size_t Stack<T>::Count() const {
     return vused_; // safe, builtins don't throw
 }
