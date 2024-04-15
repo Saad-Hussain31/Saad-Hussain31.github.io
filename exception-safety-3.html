@@ -1,1 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exception Safety - Part 3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+            color: #333;
+        }
 
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        h2 {
+            margin-top: 20px;
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        blockquote {
+            margin-left: 20px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>On Writing Exception Safe Code - Part 3</h1>
+
+<p>Let's now write exception safe member functions of the Stack class.</p>
+
+<pre><code>
+std::size_t Count() const;
+void Push(const T&);
+T Pop(); // if empty, throws exception
+</code></pre>
+
+<h2>Count()</h2>
+
+<p>Count() is easiest to implement and also exception safe because builtins never throw.</p>
+
+<pre><code>
+template &lt;class T&gt;
+std::size_t Stack<T>::Count() const {
+    return vused_; // safe, builtins don't throw
+}
+</code></pre>
+
+<h2>Push()</h2>
+
+<p>For Push(), if NewCopy() throws then state is unchanged, and exception is propagated back to the client cleanly.</p>
+
+<pre><code>
+template &lt;class T&gt;
+void Stack<T>::Push( const T& t ) {
+ if( vused_ == vsize_ ) { // grow if necessary by some grow factor
+     std::size_t vsize_new = vsize_*2+1;
+     T* v_new = NewCopy( v_, vsize_, vsize_new );
+     delete[] v_; // this can't throw
+     v_ = v_new; // take ownership
+     vsize_ = vsize_new;
+ }
+ v_[vused_] = t;
+ ++vused_;
+}
+</code></pre>
+
+<p>After any required grow operation, we attempt to copy the new value before incrementing our vused_ count. This way, if the assignment throws, the increment is not performed and our Stack's state is unchanged. If the assignment succeeds, the Stack's state is changed to recognize the presence of the new value.</p>
+
+<p><em>Guidelines: Observe the canonical exception-safety rules: In each function, take all the code that might emit an exception and do all that work safely off to the side; only then, when you know that the real work has succeeded, should you modify the program state (and clean up) using only nonthrowing operations.</em></p>
+
+<h2>Pop()</h2>
+
+<p>Now comes the challenging part of writing Pop() correctly.</p>
+
+<h3>Implementing Pop() - 1st Try</h3>
+
+<pre><code>
+template &lt;class T&gt;
+T Stack<T>::Pop() {
+    if( vused_ == 0) {
+        throw "pop from empty stack";
+    } else {
+         T result = v_[vused_-1];
+         --vused_;
+         return result;
+    }
+}
+</code></pre>
+
+<p>If the initial copy from v_[vused_-1] fails, the exception is propagated and the state of the Stack is unchanged.</p>
+
+<p>Pop() has a flaw. Consider the client code,</p>
+
+<pre><code>
+std::string s1(s.Pop());
+std::string s2;
+s2 = s.Pop();
+</code></pre>
+
+
+<p>The flaw arises from the fact that the Pop function returns a value by value. If an exception occurs during the construction of the returned copy (e.g., during the copy constructor or copy assignment operator), the state of the stack might be modified, but the popped value is lost.</p>
+
+<h3>Implementing Pop() - 2nd Try</h3>
+
+<pre><code>
+template &lt;class T&gt; T Stack&lt;T&gt;::Pop(T &result) {
+  if (vused_ == 0) {
+      throw "stack is empty!";
+  } else {
+      result = v_[vused_ - 1];
+      --vused_;
+  }
+}
+</code></pre>
+
+<p>In the revised implementation, the Pop function doesn't return a value anymore. Instead, it takes an additional parameter result by reference. The popped element is directly assigned to this result parameter. The Stack's state is not changed until the popped element safely arrives in the caller's hand.</p>
+
+<p>But Pop() now has two responsibilities, to pop the top-most element and to return the just-popped value. The breaks cohesion principle.</p>
+
+<p><em>Guideline: Prefer cohesion. Always endeavor to give each piece of code—each module, each class, each function—a single, well-defined responsibility.</em></p>
+    
+<p>So other preferable option is to separate the functions of "querying the top-most value" and "popping the top-most value off the stack." We do this by having one function for eac</p>
+
+<h3>Implementing Pop() - 3rd Try</h3>
+
+<pre><code>
+template &lt;class T&gt; T &Stack&lt;T&gt;::Top() {
+    if (vused_ == 0) {
+        throw "empty stack";
+    } else {
+        return v_[vused_ - 1];
+    }
+}
+
+template &lt;class T&gt; void Stack&lt;T&gt;::Pop() {
+    if (vused_ == 0) {
+        throw "pop from empty stack";
+    } else {
+        --vused_;
+    }
+}
+</code></pre>
+
+<p>The above separated Top() and Pop() now match the signatures of the top and pop members of the standard library's stack&lt;&gt; adapter. That's no coincidence. The reason why standard library containers' pop functions (for example, list::pop_back, stack::pop, etc.) don't return the popped value is to avoid weakening exception safety.</p>
+
+<p><em>Common Mistakes: "Exception-unsafe" and "poor design" go hand in hand. If a piece of code isn't exception-safe, that's generally okay and can simply be fixed. But if a piece of code cannot be made exception-safe because of its underlying design, that almost always is a signal of its poor design.</em></p>
+
+</div>
+
+</body>
+</html>
